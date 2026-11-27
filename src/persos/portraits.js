@@ -17,12 +17,14 @@ export function oeil({ x, y, l = 15, h = 5.5, regard = [0, 0], paupiere = 0.35, 
 <clipPath id="${id}"><path d="${amande}"/></clipPath>
 <path d="${amande}" fill="${blanc}"/>
 <g clip-path="url(#${id})">
-<circle data-part="iris" cx="${ix}" cy="${iy}" r="${r}" fill="${iris}"/>
+<g data-part="regard">
+<circle cx="${ix}" cy="${iy}" r="${r}" fill="${iris}"/>
 <circle cx="${ix}" cy="${iy}" r="${r * 0.5}" fill="#0C0806"/>
-<rect data-part="paupiere" x="${g - 2}" y="${y - h - 2}" width="${l + 4}" height="${bord - (y - h) + 2}" fill="${ombre}"/>
+<circle cx="${ix - r * 0.32}" cy="${iy - r * 0.38}" r="${Math.max(0.8, r * 0.26)}" fill="#FFF1DC"/>
+</g>
+<rect data-part="paupiere" data-ouvert="${bord - (y - h) + 2}" data-ferme="${2 * h + 4}" x="${g - 2}" y="${y - h - 2}" width="${l + 4}" height="${bord - (y - h) + 2}" fill="${ombre}"/>
 </g>
 <path d="M${g - 0.6} ${y + 0.4}Q${x} ${bord - 0.8} ${d + 0.6} ${y - 0.2}" fill="none" stroke="#120A07" stroke-width="1.9" stroke-linecap="round"/>
-<circle cx="${ix - r * 0.32}" cy="${iy - r * 0.38}" r="${Math.max(0.8, r * 0.26)}" fill="#FFF1DC"/>
 </g>`;
 }
 
@@ -330,8 +332,10 @@ export function kiki() {
 <path d="M-37 22C-36 36 -31 48 -24 58C-16 68 -8 73 0 74C8 73 16 68 24 58C31 48 36 36 37 22C33 32 30 42 24 50C18 58 10 62 0 62C-10 62 -18 58 -24 50C-30 42 -33 32 -37 22Z" fill="#170E09" opacity=".88"/>
 <path d="M-9 59C-4 61.5 4 61.5 9 59L8 71C4 73 -4 73 -8 71Z" fill="#170E09" opacity=".88"/>
 <path d="M-14 44C-8 41 -3 41 0 42C3 41 8 41 14 44L13 46.5C8 45 3 45 0 46C-3 45 -8 45 -13 46.5Z" fill="#170E09" opacity=".9"/>
+<g data-part="lueur">
 <ellipse cx="0" cy="72" rx="30" ry="14" fill="url(#${lu})" opacity=".45"/>
 <path d="M-8 56.5C-3 58 3 58 8 56.3M-6 40.5C-2 41.8 2 41.8 6 40.5" stroke="#CFE0FF" stroke-width="1" fill="none" opacity=".35"/>
+</g>
 <g data-part="yeux">
 ${oeil({ x: -16, y: 1, l: 14, h: 5.2, regard: [-1.2, 1.8], paupiere: 0.5, id: oG })}
 ${oeil({ x: 16, y: 1, l: 14, h: 5.2, regard: [-1.2, 1.8], paupiere: 0.5, id: oD })}

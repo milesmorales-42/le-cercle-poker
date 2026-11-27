@@ -1,0 +1,223 @@
+/* Le Cercle : une table de jeu sous une lampe. La scène est dessinée pour un iPhone
+   (390 px de large) et mise à l'échelle ; sa hauteur suit l'écran, en trois bandes :
+   les adversaires en haut, le tableau au milieu, ta main et Lucien en bas. */
+:root {
+  --penombre: #1F1410;
+  --prusse: #1E4D63;
+  --prusse-nuit: #0F2838;
+  --carton: #F2E8D5;
+  --vermillon: #D8442F;
+  --jaune: #E8AE3C;
+  --encre: #1C1814;
+  --vert: #3F8B57;
+  --outremer: #2E46A8;
+  --lampe: #FFD891;
+  --carton-doux: color-mix(in srgb, var(--carton) 74%, var(--prusse));
+  --f-titre: "Young Serif", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --f-texte: "Bricolage Grotesque Variable", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --k: 1;
+  --h: 844px;
+  --sat: 0px; /* zones protégées de l'écran, en unités de scène */
+  --sab: 0px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: radial-gradient(900px 600px at 50% 18%, #2E1D14, var(--penombre) 70%) var(--penombre);
+  color: var(--carton);
+  font: 400 16px/1.4 var(--f-texte);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+button { font: inherit; color: inherit; }
+.sonde { position: fixed; padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px); visibility: hidden; pointer-events: none; }
+
+#app { position: fixed; inset: 0; overflow: hidden; }
+.scene {
+  position: absolute; left: 50%; top: 0;
+  width: 390px; height: var(--h);
+  margin-left: -195px;
+  transform: scale(var(--k)); transform-origin: 50% 0;
+  overflow: hidden;
+  overflow: clip;
+  isolation: isolate;
+}
+.monde { overflow: hidden; overflow: clip; }
+.scene:not(.en-partie) .ma-main, .scene:not(.en-partie) .hud .niveau, .scene:not(.en-partie) .bouton-d { visibility: hidden; }
+
+/* ---------- la salle ---------- */
+.monde { position: absolute; inset: 0; }
+.salle { position: absolute; inset: 0; background:
+  radial-gradient(260px 190px at 50% 150px, rgba(255,196,130,.16), transparent 72%),
+  linear-gradient(transparent 0 104px, rgba(255,226,190,.05) 104px 106px, transparent 106px),
+  repeating-linear-gradient(90deg, rgba(255,226,190,.03) 0 1px, transparent 1px 65px),
+  linear-gradient(#26180F, #1B110C 60%); }
+.siege { position: absolute; will-change: transform; }
+.siege .portrait { display: block; width: 100%; height: auto; overflow: visible; }
+.siege.couche .portrait { filter: brightness(.6) saturate(.7); transition: filter .6s; }
+
+.table { position: absolute; left: -165px; top: 200px; width: 720px; height: 1560px; border-radius: 50%; background: #2A1911; }
+.table::before { content: ""; position: absolute; inset: 2px; border-radius: 50%; border-top: 3px solid rgba(255,214,160,.22); }
+.feutre { position: absolute; inset: 14px; border-radius: 50%; overflow: hidden; background: var(--prusse-nuit); box-shadow: inset 0 14px 22px -6px rgba(0,0,0,.6); }
+.feutre::after { content: ""; position: absolute; inset: 0; opacity: .18; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .8 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.flaque { position: absolute; left: 66px; width: 560px; height: 520px; border-radius: 50%;
+  top: calc(var(--centre-y) - 214px - 260px);
+  background: radial-gradient(closest-side, #3F7C89 0%, #2E6878 28%, #225669 50%, rgba(30,77,99,.5) 74%, rgba(30,77,99,0) 100%); }
+.anneau { position: absolute; left: 170px; width: 352px; height: 214px; top: calc(var(--centre-y) - 214px - 107px); border-radius: 50%; border: 1.5px solid rgba(242,232,213,.12); }
+.cone { position: absolute; left: -40px; top: 72px; width: 470px; height: calc(var(--centre-y) + 120px); pointer-events: none; transform-origin: 50% -492px;
+  clip-path: polygon(34.5% 0, 65.5% 0, 100% 100%, 0 100%); mix-blend-mode: screen;
+  background: linear-gradient(rgba(255,216,145,.14), rgba(255,216,145,.05) 55%, rgba(255,216,145,0)); }
+.lampe { position: absolute; left: 105px; top: 0; width: 180px; height: 84px; transform-origin: 50% -420px; z-index: 30; pointer-events: none; }
+.lampe .cable { position: absolute; left: 89px; top: 0; width: 2px; height: 32px; background: #0A0706; }
+.lampe .abat { position: absolute; left: 14px; right: 14px; top: 28px; height: 44px; clip-path: polygon(33% 0, 67% 0, 100% 100%, 0 100%);
+  background: linear-gradient(90deg, #14231C 0%, #2F4C3E 38%, #3D604F 46%, #1F3329 70%, #111D17 100%); }
+.lampe .rebord { position: absolute; left: 12px; right: 12px; top: 66px; height: 12px; border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 30%, #FFF4D2 0%, var(--lampe) 40%, rgba(255,216,145,0) 72%); box-shadow: 0 2px 24px 8px rgba(255,216,145,.28); }
+.lampe.eteinte .rebord { background: #3A2E22; box-shadow: none; }
+
+/* ---------- noms, mises, tableau, pot ---------- */
+.nom { position: absolute; width: 104px; margin-left: -52px; display: grid; justify-items: center; gap: 1px; text-shadow: 0 1px 3px rgba(0,0,0,.6); transition: opacity .4s; }
+.nom b { font: 400 14.5px/1.15 var(--f-titre); }
+.nom .tapis-n { font: 500 12.5px/1.2 var(--f-texte); font-variant-numeric: tabular-nums; color: var(--carton-doux); }
+.nom.couche { opacity: .42; }
+.nom.parle b { color: var(--lampe); }
+.mise { position: absolute; display: flex; align-items: center; gap: 6px; transform: translate(-50%, -50%);
+  font: 600 13px/1 var(--f-texte); font-variant-numeric: tabular-nums; text-shadow: 0 1px 3px rgba(0,0,0,.6); pointer-events: none; }
+.mise:empty { display: none; }
+.pile { position: relative; width: 26px; height: 30px; }
+.pile .jeton { position: absolute; left: 0; }
+.jeton { --c: var(--vermillon); --l: var(--carton); display: inline-block; flex: none; width: var(--d, 22px); height: var(--d, 22px); border-radius: 50%;
+  background: radial-gradient(circle, var(--c) 0 36%, var(--l) 37% 41%, var(--c) 42% 63%, transparent 64%), repeating-conic-gradient(var(--l) 0 14deg, var(--c) 14deg 45deg);
+  box-shadow: 0 0 0 1px rgba(20,12,8,.45), 0 2px 3px rgba(0,0,0,.45); }
+.j-blanc { --c: var(--carton); --l: var(--vermillon); }
+.j-vermillon { --c: var(--vermillon); --l: var(--carton); }
+.j-noir { --c: var(--encre); --l: var(--carton); }
+.j-jaune { --c: var(--jaune); --l: var(--carton); }
+.vol { position: absolute; inset: 0; pointer-events: none; z-index: 25; }
+.vol > * { position: absolute; left: 0; top: 0; }
+
+.milieu { position: absolute; left: 0; right: 0; top: 300px; bottom: 348px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; pointer-events: none; }
+.tableau { position: relative; width: 322px; height: 83px; }
+.fente { position: absolute; top: 0; width: 58px; height: 82px; border-radius: 6px; border: 1.5px dashed rgba(242,232,213,.16); }
+.pot { position: relative; display: flex; justify-content: center; align-items: center; gap: 12px; transition: opacity .3s; }
+.pot.vide { opacity: 0; }
+.pot .tas { position: relative; width: 48px; height: 38px; }
+.pot .tas .jeton { position: absolute; }
+.pot-t { display: grid; line-height: 1; }
+.pot-t > span { font: 500 12.5px/1 var(--f-texte); color: var(--carton-doux); margin-bottom: 4px; }
+
+/* compteur à rouleaux */
+.compteur { display: inline-flex; font: 400 28px/1 var(--f-titre); font-variant-numeric: lining-nums tabular-nums; height: 1.2em; overflow: hidden; }
+.compteur .col { display: inline-flex; flex-direction: column; width: .62em; text-align: center; }
+.compteur .col span { height: 1.2em; line-height: 1.2em; }
+.compteur .sep { width: .25em; }
+
+/* ---------- cartes ---------- */
+.carte { position: absolute; left: 0; top: 0; width: var(--w); height: calc(var(--w) * 1.42); transform-style: preserve-3d; -webkit-transform-style: preserve-3d; }
+.carte > .f, .carte > .d { position: absolute; inset: 0; border-radius: calc(var(--w) * .1); backface-visibility: hidden; -webkit-backface-visibility: hidden; box-shadow: 0 calc(var(--w) * .05) calc(var(--w) * .12) rgba(4,12,18,.5); }
+.carte > .f { background: var(--carton); color: var(--encre); overflow: hidden; }
+.carte.rouge > .f { color: var(--vermillon); }
+.carte > .d, .dos-mini { background:
+  radial-gradient(circle at 50% 50%, var(--vermillon) 0 7%, var(--carton) 7.5% 11%, transparent 11.5%),
+  radial-gradient(circle, transparent 0 1.9px, rgba(242,232,213,.5) 2px 2.8px, transparent 3px) 0 0/8px 8px,
+  var(--outremer);
+  box-shadow: inset 0 0 0 calc(var(--w) * .05) var(--carton), 0 3px 6px rgba(4,12,18,.45); }
+.carte > .d { transform: rotateY(180deg); }
+.carte .voile { position: absolute; inset: 0; border-radius: inherit; background: #0B0705; opacity: 0; transition: opacity .4s; pointer-events: none; }
+.carte.terne .voile { opacity: .55; }
+.idx { position: absolute; left: 7%; top: 5%; width: 26%; display: grid; justify-items: center; line-height: 1; }
+.idx b { font: 400 calc(var(--w) * .31)/1 var(--f-titre); letter-spacing: -.05em; font-variant-numeric: lining-nums; }
+.idx svg { display: block; width: 62%; height: auto; aspect-ratio: 1; margin-top: calc(var(--w) * .03); fill: currentColor; }
+.idx.bas { left: auto; top: auto; right: 7%; bottom: 5%; transform: rotate(180deg); }
+.pip { position: absolute; left: 28%; top: 31%; width: 44%; height: auto; aspect-ratio: 1; fill: currentColor; }
+.pip.as { left: 20%; top: 25%; width: 60%; }
+.emb { position: absolute; left: 20%; top: 27%; width: 60%; height: auto; }
+.emb .ink { transform: translate(3.5px, 3px); }
+.emb .k { fill: none; stroke: var(--encre); stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; }
+.nom-fig { position: absolute; left: 0; right: 0; top: 66%; text-align: center; font: 400 calc(var(--w) * .125)/1 var(--f-titre); color: var(--encre); }
+.carte.petite .pip { left: 25%; top: 38%; width: 50%; }
+.carte.petite .emb { left: 16%; top: 42%; width: 68%; }
+.dos-mini { position: absolute; width: 20px; height: 28px; border-radius: 3px; --w: 20px; }
+
+.ma-main { position: absolute; left: 0; right: 0; bottom: 0; height: 348px; pointer-events: none; }
+.etiquette { position: absolute; left: 26px; bottom: calc(112px + var(--sab)); margin: 0; font: 400 19px/1.1 var(--f-titre); text-shadow: 0 1px 3px rgba(0,0,0,.6); transition: opacity .3s; }
+.mon-tapis { position: absolute; left: 26px; bottom: calc(88px + var(--sab)); margin: 0; display: flex; align-items: center; gap: 6px; font: 500 13px/1 var(--f-texte); font-variant-numeric: tabular-nums; color: var(--carton-doux); }
+.bouton-d { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; background: var(--carton); color: var(--encre); font: 400 14px/26px var(--f-titre); text-align: center; box-shadow: inset 0 0 0 1px rgba(28,24,20,.3), 0 2px 0 rgba(0,0,0,.4); z-index: 6; }
+.lucien { position: absolute; right: -22px; bottom: calc(26px + var(--sab)); width: 182px; pointer-events: none; }
+.lucien .portrait { display: block; width: 100%; height: auto; }
+
+/* ---------- bulles ---------- */
+.bulle { position: absolute; z-index: 28; margin: 0; background: var(--carton); color: var(--encre); border: 1.6px solid var(--encre); border-radius: 16px; padding: 9px 13px 10px;
+  font: 450 15.5px/1.33 var(--f-texte); box-shadow: 0 10px 22px -6px rgba(5,3,2,.6); pointer-events: auto; visibility: hidden; }
+.bulle::after { content: ""; position: absolute; inset: -1.6px; border-radius: inherit; border: 2px solid var(--ink, var(--vermillon)); opacity: .9; transform: translate(3px, 2.5px); pointer-events: none; }
+.bulle p { margin: 0; }
+.bulle b { font-weight: 640; }
+.bulle .queue { position: absolute; z-index: 1; overflow: visible; }
+.bulle.lucien-b { --ink: var(--vermillon); right: 14px; width: 272px; }
+.bulle.lucien-b .queue { right: 44px; bottom: -16px; width: 22px; height: 16px; }
+.bulle.adv { --ink: var(--outremer); max-width: 168px; font-size: 14.5px; }
+.bulle.adv .queue { bottom: -16px; width: 28px; height: 16px; }
+.bulle .suite { position: absolute; right: 10px; bottom: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--vermillon); opacity: 0; }
+.bulle.attend .suite { animation: battement 1.1s ease-in-out infinite; }
+@keyframes battement { 0%, 100% { opacity: .25; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.1); } }
+
+/* ---------- plaques d'action ---------- */
+.actions { position: absolute; left: 14px; right: 14px; bottom: calc(14px + var(--sab)); height: 52px; display: grid; grid-template-columns: 1fr 1fr 1.12fr; gap: 8px; z-index: 40; }
+.actions.cache { pointer-events: none; }
+.plaque { position: relative; height: 52px; border: 0; padding: 0 8px; border-radius: 9px; display: grid; place-items: center; cursor: pointer;
+  font: 640 15.5px/1 var(--f-texte); color: var(--encre); background: var(--pc); font-variant-numeric: tabular-nums;
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--pc) 50%, #000), 0 10px 18px -4px rgba(0,0,0,.55); }
+.plaque::before { content: ""; position: absolute; inset: 4px; border-radius: 6px; border: 1px solid color-mix(in srgb, var(--encre) 28%, transparent); pointer-events: none; }
+.plaque:active { transform: translateY(2px); box-shadow: 0 1px 0 color-mix(in srgb, var(--pc) 50%, #000), 0 6px 12px -4px rgba(0,0,0,.55); }
+.plaque:focus-visible { outline: 3px solid var(--carton); outline-offset: 3px; }
+.plaque[hidden] { display: none; }
+.p-ivoire { --pc: var(--carton); }
+.p-jaune { --pc: var(--jaune); }
+.p-verm { --pc: var(--vermillon); color: var(--carton); }
+.p-verm::before { border-color: color-mix(in srgb, var(--carton) 45%, transparent); }
+.plaque.conseil::after { content: ""; position: absolute; inset: -5px; border-radius: 13px; border: 2px solid var(--lampe); animation: conseil 1.6s ease-in-out infinite; pointer-events: none; }
+@keyframes conseil { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+.plaque.confirmer { --pc: #E9D2B0; }
+
+/* panneau de mise : une pile qu'on fait monter */
+.panneau { position: absolute; left: 14px; right: 14px; bottom: calc(14px + var(--sab)); z-index: 41; display: grid; gap: 10px; padding: 14px 14px 12px; border-radius: 14px;
+  background: linear-gradient(#24170F, #1A100B); box-shadow: inset 0 0 0 1px rgba(255,226,190,.1), 0 -10px 30px rgba(0,0,0,.5); }
+.panneau .haut { display: flex; align-items: center; justify-content: space-between; }
+.panneau .montant { font: 400 30px/1 var(--f-titre); font-variant-numeric: lining-nums tabular-nums; }
+.panneau .quoi { font: 500 13px/1.2 var(--f-texte); color: var(--carton-doux); }
+.panneau .piste { position: relative; height: 54px; touch-action: none; cursor: grab; }
+.panneau .rail { position: absolute; left: 0; right: 0; top: 50%; height: 4px; margin-top: -2px; border-radius: 2px; background: rgba(242,232,213,.14); }
+.panneau .rail i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--jaune); }
+.panneau .poignee { position: absolute; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; --d: 44px; }
+.panneau .raccourcis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.panneau .raccourcis button { height: 36px; border-radius: 8px; border: 1px solid rgba(242,232,213,.18); background: rgba(242,232,213,.06); font: 560 13.5px/1 var(--f-texte); cursor: pointer; }
+.panneau .bas { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }
+
+/* ---------- tampons et titres ---------- */
+.tampon { position: absolute; left: 0; right: 0; display: grid; place-items: center; pointer-events: none; z-index: 27; opacity: 0; }
+.tampon span { grid-area: 1 / 1; font: 400 var(--taille, 72px)/1 var(--f-titre); letter-spacing: -.01em; white-space: nowrap; }
+.tampon .t-ink { color: var(--vermillon); transform: translate(4px, 3px); }
+.tampon .t-key { color: var(--carton); text-shadow: 0 8px 26px rgba(0,0,0,.45); }
+.main-nom { position: absolute; transform: translate(-50%, 0); font: 400 13px/1.1 var(--f-titre); white-space: nowrap; padding: 3px 8px 4px; border-radius: 6px; background: rgba(20,12,8,.72); color: var(--carton); z-index: 26; }
+.main-nom.gagne { background: var(--jaune); color: var(--encre); }
+
+/* ---------- interface autour ---------- */
+.hud { position: absolute; left: 10px; right: 10px; top: calc(var(--sat) + 4px); height: 40px; display: flex; justify-content: space-between; align-items: center; z-index: 45; pointer-events: none; }
+.hud button { pointer-events: auto; width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(15,9,6,.55); display: grid; place-items: center; cursor: pointer; }
+.hud svg { width: 20px; height: 20px; fill: none; stroke: var(--carton); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.hud .niveau { font: 500 12px/1.2 var(--f-texte); color: var(--carton-doux); text-align: center; text-shadow: 0 1px 3px #000; }
+
+.iris { position: fixed; inset: 0; z-index: 100; pointer-events: none; background: #0B0705; clip-path: circle(0% at 50% 40%); }
+
+@media (prefers-reduced-motion: reduce) {
+  .plaque.conseil::after, .bulle.attend .suite { animation: none; opacity: 1; }
+}

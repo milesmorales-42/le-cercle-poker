@@ -1,0 +1,17 @@
+{
+  "name": "Le Cercle",
+  "short_name": "Le Cercle",
+  "description": "Apprendre le Texas Hold'em en jouant, avec Lucien le croupier.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#1F1410",
+  "theme_color": "#1F1410",
+  "icons": [
+    { "src": "icone-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icone-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icone.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

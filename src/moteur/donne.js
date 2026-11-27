@@ -124,6 +124,8 @@ export class Donne {
       relanceMinA: minA,
       relanceMaxA: maxA,
       estMise: this.miseMax === 0,
+      miseMax: this.miseMax,
+      maMise: j.mise,
       pot: this.pot,
       tapis: j.tapis,
     };
