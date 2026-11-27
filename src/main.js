@@ -12,6 +12,7 @@ import { PARTIES } from './partie/scenarios.js';
 import { progression } from './partie/progression.js';
 import { sons } from './audio/sons.js';
 import { creer } from './ui/outils.js';
+import { montrerEchelle } from './ui/echelle.js';
 
 async function demarrer() {
   progression.charger();
@@ -31,25 +32,31 @@ async function demarrer() {
   majSon();
   boutonSon.onclick = () => { sons.debloquer(); sons.basculer(); majSon(); };
   scene.el.querySelector('.hud .menu').onclick = () => quitter(scene);
+  scene.el.querySelector('.hud .aide').onclick = () => {
+    if (!scene.el.querySelector('.echelle')) montrerEchelle(scene);
+  };
 
   await intro(scene, lumiere, { courte: progression.donnees.introVue });
   progression.marquerIntro();
 
-  // Première visite : on s'assoit directement à la première partie
-  let premiere = !progression.terminee('p1');
+  // Première visite : on s'assoit directement à la première leçon
+  let premiere = !progression.terminee(PARTIES[0].id);
   for (;;) {
     const choix = premiere ? PARTIES[0] : await salle(scene, PARTIES, progression);
     premiere = false;
     const partie = new Partie({ scene, lumiere, plaques });
     const res = await partie.jouer(choix);
-    progression.terminer(choix.id, res.jetons);
-    await finDePartie(scene, lumiere, choix);
+    if (res.fini) {
+      progression.terminer(choix.id, res.jetons);
+      await finDePartie(scene, lumiere, choix);
+    }
   }
 }
 
 async function finDePartie(scene, lumiere, partie) {
   sons.jouer('impact', { volume: 0.6 });
-  const t = creer('div', 'tampon', `<span class="t-ink">Partie ${partie.numero} jouée</span><span class="t-key">Partie ${partie.numero} jouée</span>`);
+  const mot = partie.libre ? 'Table jouée' : `Leçon ${partie.numero} apprise`;
+  const t = creer('div', 'tampon', `<span class="t-ink">${mot}</span><span class="t-key">${mot}</span>`);
   t.style.setProperty('--taille', '40px');
   t.style.top = scene.centreY - 30 + 'px';
   scene.el.appendChild(t);

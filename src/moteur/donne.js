@@ -281,6 +281,8 @@ export class Donne {
     evts.push(this.noter({ type: 'abattage', ordre: ordre.map(j => j.id), mains }));
 
     const pots = calculerPots(this.joueurs.map(j => ({ id: j.id, engage: j.engage, couche: j.couche })));
+    // Donne de démonstration sans mise : on désigne quand même le gagnant
+    if (!pots.length) pots.push({ montant: 0, eligibles: enJeu.map(j => j.id) });
     const ordreJetons = this.ordreDepuisBouton().map(j => j.id);
     const resultats = pots.map(p => {
       const meilleurScore = Math.max(...p.eligibles.map(id => mains[id].sc));

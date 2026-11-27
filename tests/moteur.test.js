@@ -225,6 +225,48 @@ test('tapis à trois : pot principal et pot annexe, mains retournées', () => {
   assert.equal(d.joueur('odette').tapis + d.joueur('baron').tapis, 0);
 });
 
+test('donne de démonstration sans blindes : un gagnant quand même', () => {
+  const d = new Donne({
+    joueurs: trois(), bouton: 'toi', petite: 0, grosse: 0, rng: generateur(11),
+    mains: { toi: lire('Ah 4h'), odette: lire('Ts 9c'), baron: lire('7s 7c') },
+    tableau: lire('7d 8h Jc Qh 2h'),
+  });
+  d.demarrer();
+  while (!d.finie) {
+    if (d.joueurActif) d.agir(d.joueurActif.id, { type: 'parole' });
+    else d.avancer();
+  }
+  const gain = d.journal.find(e => e.type === 'gain');
+  assert.equal(gain.pots[0].gagnants[0].id, 'toi');
+  assert.equal(nommer(gain.mains.toi), 'Couleur à cœur');
+  assert.equal(nommer(gain.mains.odette), 'Quinte à la Dame');
+  assert.equal(nommer(gain.mains.baron), 'Brelan de 7');
+});
+
+test('leçon des exceptions : pot principal pour Odette, pot annexe pour toi', () => {
+  const d = new Donne({
+    joueurs: trois([1000, 150, 1000]), bouton: 'baron', petite: 10, grosse: 20, rng: generateur(12),
+    mains: { toi: lire('Kh Kc'), odette: lire('As Ad'), baron: lire('Qs Js') },
+    tableau: lire('2c 7d 9s 4h 3c'),
+  });
+  d.demarrer();
+  d.agir('baron', { type: 'relancer', a: 60 });
+  d.agir('toi', { type: 'suivre' });
+  d.agir('odette', { type: 'tapis' });
+  d.agir('baron', { type: 'suivre' });
+  d.agir('toi', { type: 'suivre' });
+  d.avancer();
+  d.agir('toi', { type: 'parole' });
+  d.agir('baron', { type: 'relancer', a: 100 });
+  d.agir('toi', { type: 'suivre' });
+  while (!d.finie) {
+    if (d.joueurActif) d.agir(d.joueurActif.id, { type: 'parole' });
+    else d.avancer();
+  }
+  const gain = d.journal.find(e => e.type === 'gain');
+  assert.deepEqual(gain.pots.map(p => [p.montant, p.gagnants.map(g => g.id).join()]), [[450, 'odette'], [200, 'toi']]);
+});
+
 test('chen et équité donnent des ordres de grandeur sensés', () => {
   assert.ok(chen(lire('As Ad')) >= 20);
   assert.ok(chen(lire('7c 2d')) <= 0);

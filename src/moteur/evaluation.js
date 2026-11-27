@@ -64,7 +64,7 @@ export function nommer(e) {
   switch (e.cat) {
     case 0: return 'Hauteur ' + nomRang(t[0]);
     case 1: return 'Paire ' + deRangs(t[0]);
-    case 2: return `Double paire, ${nomRangPluriel(t[0])} et ${nomRangPluriel(t[1])}`;
+    case 2: return `Double paire ${nomRangPluriel(t[0])} et ${nomRangPluriel(t[1])}`;
     case 3: return 'Brelan ' + deRangs(t[0]);
     case 4: return 'Quinte ' + auRang(t[0]);
     case 5: return `Couleur à ${NOMS_COULEURS[e.cartes[0].s]}`;

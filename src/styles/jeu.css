@@ -105,7 +105,7 @@ button { font: inherit; color: inherit; }
 .vol { position: absolute; inset: 0; pointer-events: none; z-index: 25; }
 .vol > * { position: absolute; left: 0; top: 0; }
 
-.milieu { position: absolute; left: 0; right: 0; top: 300px; bottom: 348px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; pointer-events: none; }
+.milieu { position: absolute; left: 0; right: 0; top: calc(var(--centre-y) - 200px); height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; pointer-events: none; }
 .tableau { position: relative; width: 322px; height: 83px; }
 .fente { position: absolute; top: 0; width: 58px; height: 82px; border-radius: 6px; border: 1.5px dashed rgba(242,232,213,.16); }
 .pot { position: relative; display: flex; justify-content: center; align-items: center; gap: 12px; transition: opacity .3s; }
@@ -209,12 +209,16 @@ button { font: inherit; color: inherit; }
 .tampon .t-key { color: var(--carton); text-shadow: 0 8px 26px rgba(0,0,0,.45); }
 .main-nom { position: absolute; transform: translate(-50%, 0); font: 400 13px/1.1 var(--f-titre); white-space: nowrap; padding: 3px 8px 4px; border-radius: 6px; background: rgba(20,12,8,.72); color: var(--carton); z-index: 26; }
 .main-nom.gagne { background: var(--jaune); color: var(--encre); }
+.main-nom-p { display: inline-block; padding: 2px 7px 3px; border-radius: 6px; background: rgba(20,12,8,.78); color: var(--carton); font: 400 12.5px/1.15 var(--f-titre); white-space: nowrap; }
+.main-nom-p.gagne { background: var(--jaune); color: var(--encre); }
 
 /* ---------- interface autour ---------- */
 .hud { position: absolute; left: 10px; right: 10px; top: calc(var(--sat) + 4px); height: 40px; display: flex; justify-content: space-between; align-items: center; z-index: 45; pointer-events: none; }
 .hud button { pointer-events: auto; width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(15,9,6,.55); display: grid; place-items: center; cursor: pointer; }
 .hud svg { width: 20px; height: 20px; fill: none; stroke: var(--carton); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .hud .niveau { font: 500 12px/1.2 var(--f-texte); color: var(--carton-doux); text-align: center; text-shadow: 0 1px 3px #000; }
+.hud .droite { display: flex; gap: 8px; }
+.scene:not(.en-partie) .hud .aide { visibility: hidden; }
 
 .iris { position: fixed; inset: 0; z-index: 100; pointer-events: none; background: #0B0705; clip-path: circle(0% at 50% 40%); }
 

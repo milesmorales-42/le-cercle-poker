@@ -20,6 +20,8 @@ const STYLE = `
 .carte-membre .rond.tampon-ok { border: 2.5px solid var(--vermillon); color: var(--vermillon); transform: rotate(-12deg); font-size: 11px; letter-spacing: .02em; text-align: center; line-height: 1.05; }
 .carte-membre .rond.ouverte { border: 1.5px solid var(--encre); color: var(--encre); }
 .carte-membre .t { font: 400 18px/1.15 var(--f-titre); }
+.carte-membre li.groupe { margin: 10px 6px 2px; font: 600 13px/1.2 var(--f-texte); color: var(--vermillon); }
+.carte-membre li.groupe:first-child { margin-top: 0; }
 .carte-membre .r { font: 500 13.5px/1.3 var(--f-texte); color: #6B5E52; }
 .carte-membre .r em { font-style: normal; color: var(--vermillon); }
 `;
@@ -37,11 +39,12 @@ export function salle(scene, parties, progression) {
     carte.innerHTML = `<h1><span class="ink" aria-hidden="true">Le Cercle</span><span class="key">Le Cercle</span></h1>
       <p class="sous">Carte de membre. Chaque partie jouée y laisse son tampon.</p>
       <ol>${parties.map((p, i) => {
+        const titreGroupe = p.groupe && p.groupe !== parties[i - 1]?.groupe ? `<li class="groupe">${p.groupe === 'Initiation' ? 'Initiation' : 'Parties libres'}</li>` : '';
         const fini = progression.terminee(p.id);
         const ouverte = progression.ouverte(parties, i);
         const rond = fini ? `<span class="rond tampon-ok">Joué</span>` : `<span class="rond${ouverte ? ' ouverte' : ''}">${p.numero}</span>`;
         const resume = p.bientot ? `<em>Bientôt.</em> ${p.resume}` : p.resume;
-        return `<li><button type="button" data-i="${i}" ${ouverte ? '' : 'disabled'}>${rond}<span><span class="t">${p.titre}</span><br><span class="r">${resume}</span></span></button></li>`;
+        return `${titreGroupe}<li><button type="button" data-i="${i}" ${ouverte ? '' : 'disabled'}>${rond}<span><span class="t">${p.titre}</span><br><span class="r">${resume}</span></span></button></li>`;
       }).join('')}</ol>`;
     scene.el.append(voile, carte);
     gsap.fromTo(voile, { opacity: 0 }, { opacity: 1, duration: 0.4 });

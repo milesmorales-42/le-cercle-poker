@@ -53,7 +53,8 @@ export class Scene {
       <div class="lampe"><span class="cable"></span><span class="abat"></span><span class="rebord"></span></div>
       <div class="hud"><button class="menu" type="button" aria-label="Retour à la carte de membre"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
         <span class="niveau"></span>
-        <button class="son" type="button" aria-label="Couper le son"><svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="ondes" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></button></div>
+        <span class="droite"><button class="aide" type="button" aria-label="Voir les combinaisons"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="10" height="14" rx="2" transform="rotate(-10 8.5 12)"/><rect x="10.5" y="5" width="10" height="14" rx="2"/></svg></button>
+        <button class="son" type="button" aria-label="Couper le son"><svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="ondes" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></button></span></div>
       <div class="actions cache"></div>`);
 
     this.monde = $('.monde', this.el);
@@ -90,11 +91,17 @@ export class Scene {
     this.el.style.setProperty('--sat', parseFloat(st.paddingTop) / k + 'px');
     this.el.style.setProperty('--sab', parseFloat(st.paddingBottom) / k + 'px');
     this.sab = parseFloat(st.paddingBottom) / k;
-    // centre de la lumière : le tableau, au milieu de la bande centrale
-    this.centreY = (300 + (h - 348)) / 2;
-    this.el.style.setProperty('--centre-y', this.centreY + 'px');
+    this.recentrer();
     definirScene(this.el, k);
     this.lumiere?.app?.renderer.resize(LARGEUR, h);
+  }
+
+  /** Centre de la lumière et du tableau : au milieu de la bande centrale, plus bas à quatre joueurs. */
+  recentrer() {
+    const quatre = (this.nbAdversaires || 2) >= 3;
+    this.centreY = Math.max((300 + (this.h - 348)) / 2, quatre ? 411 : 0);
+    this.el.style.setProperty('--centre-y', this.centreY + 'px');
+    if (this.lumiere?.centre) { this.lumiere.centre.y = this.centreY; this.lumiere.appliquerPenombre(); }
   }
 
   /** Point d'où partent les cartes : la main de Lucien. */
@@ -111,6 +118,8 @@ export class Scene {
     this.joueurs.clear();
     this.sieges.innerHTML = ''; this.noms.innerHTML = ''; this.mises.innerHTML = '';
     const adversaires = joueurs.filter(j => j.id !== 'toi');
+    this.nbAdversaires = adversaires.length;
+    this.recentrer();
     const places = DISPOSITIONS[adversaires.length] || DISPOSITIONS[3];
     adversaires.forEach((j, i) => {
       const p = places[i];

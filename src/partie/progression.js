@@ -1,6 +1,6 @@
 // Ta progression, gardée sur l'appareil : parties terminées et jetons gagnés.
 
-const CLE = 'le-cercle-v2';
+const CLE = 'le-cercle-v3';
 
 export const progression = {
   donnees: { parties: {}, introVue: false },

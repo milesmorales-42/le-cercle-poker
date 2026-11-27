@@ -15,6 +15,7 @@ import { sons } from '../audio/sons.js';
 import { attendre, centre, toucher, montant, creer, hasard, mouvementReduit } from '../ui/outils.js';
 import { FICHES } from '../ui/persos.js';
 import { replique } from './repliques.js';
+import { montrerEchelle } from '../ui/echelle.js';
 
 gsap.registerPlugin(MotionPathPlugin);
 
@@ -42,16 +43,21 @@ export class Partie {
   }
 
   // ---------- Lucien ----------
-  async dire(html, attendreToucher = false) {
+  /**
+   * Lucien parle. mode 'toucher' : on attend que tu touches l'écran (rare) ;
+   * sinon on laisse le temps de lire, et un toucher fait passer plus vite.
+   */
+  async dire(html, mode = 'lecture') {
     const b = this.scene.bulleLucien;
     gsap.to(this.scene.lucien.tete, { y: 1.6, duration: 0.18, yoyo: true, repeat: 1 });
     await b.dire(html);
-    if (attendreToucher) {
+    const texte = html.replace(/<[^>]+>/g, '');
+    if (mode === 'toucher' || mode === true) {
       b.attendre(true);
       await toucher(this.scene.el);
       b.attendre(false);
     } else {
-      await attendre(Math.min(1300, 280 + html.length * 7));
+      await Promise.race([attendre(Math.min(3000, 700 + texte.length * 24)), toucher(this.scene.el)]);
     }
   }
 
@@ -71,24 +77,85 @@ export class Partie {
   async jouer(def) {
     this.def = def;
     this.tapis = Object.fromEntries(def.joueurs.map(id => [id, def.tapis]));
+    this.blindes = def.blindes;
+    this.vues = new Set();
     this.scene.installer(def.joueurs.map(id => ({ id })));
+    this.lumiere.centre.y = this.scene.centreY;
+    this.lumiere.appliquerPenombre();
     this.scene.el.classList.add('en-partie');
-    this.scene.niveau.textContent = `Partie ${def.numero}, blindes ${def.blindes[0]}/${def.blindes[1]}`;
+    this.majNiveau();
     this.majTapis();
-    for (const ligne of def.ouverture || []) await this.dire(ligne, true);
-    for (let i = 0; i < def.donnes.length; i++) {
-      if (this.tapis.toi <= 0) break;
-      await this.jouerDonne(def.donnes[i], i);
+    for (const ligne of def.ouverture || []) await this.dire(ligne, 'toucher');
+    let fini = true;
+    if (def.libre) fini = await this.jouerLibre(def);
+    else {
+      for (let i = 0; i < def.donnes.length; i++) await this.jouerDonne(def.donnes[i], i);
+      for (const ligne of def.cloture || []) await this.dire(ligne, 'toucher');
     }
-    for (const ligne of def.cloture || []) await this.dire(ligne, true);
     this.scene.bulleLucien.cacher();
     this.scene.el.classList.remove('en-partie');
-    return { jetons: this.tapis.toi };
+    return { jetons: this.tapis.toi, fini };
+  }
+
+  majNiveau() {
+    const d = this.def;
+    this.scene.niveau.textContent = d.libre
+      ? `${d.titre}, blindes ${this.blindes[0]}/${this.blindes[1]}`
+      : `Leçon ${d.numero} : ${minuscule(d.titre)}`;
+  }
+
+  /** Table libre : des donnes au hasard, le bouton tourne, les blindes montent. */
+  async jouerLibre(def) {
+    const { mains, montee, paliers } = def.libre;
+    const ids = def.joueurs;
+    let b = Math.floor(Math.random() * ids.length);
+    let palier = 0;
+    const sortis = this.sortis = new Set();
+    let deuxAnnonce = false;
+    for (let n = 0; n < mains; n++) {
+      const vivants = ids.filter(id => this.tapis[id] > 0);
+      if (this.tapis.toi <= 0 || vivants.length < 2) break;
+      const p = Math.min(paliers.length - 1, Math.floor(n / montee));
+      if (p !== palier) {
+        palier = p;
+        this.blindes = paliers[p];
+        this.majNiveau();
+        await this.dire(`Les blindes montent : ${this.blindes[0]} et ${this.blindes[1]}.`);
+      }
+      do { b = (b + 1) % ids.length; } while (this.tapis[ids[b]] <= 0);
+      if (vivants.length === 2 && !deuxAnnonce && def.coach <= 2) {
+        deuxAnnonce = true;
+        await this.dire('Vous n’êtes plus que deux. À deux, le bouton pose la <b>petite blinde</b> et parle en premier avant le flop.');
+      }
+      await this.jouerDonne({ bouton: ids[b] }, n);
+      for (const id of ids) {
+        if (id === 'toi' || this.tapis[id] > 0 || sortis.has(id)) continue;
+        sortis.add(id);
+        const s = this.scene.joueurs.get(id);
+        s.perso.eteindre(true);
+        s.nom.classList.add('couche');
+        s.nom.querySelector('.tapis-n').textContent = 'Sorti';
+        s.bulle.dire(replique(id, 'perd') || '…');
+        setTimeout(() => s.bulle.cacher(), 2400);
+        await this.dire(`${FICHES[id].nom} n’a plus de jetons et quitte la table.`);
+      }
+    }
+    if (this.tapis.toi <= 0) {
+      await this.dire('Plus de jetons. Ça arrive aux meilleurs : tu peux rejouer cette table quand tu veux.', 'toucher');
+      return false;
+    }
+    const restants = ids.filter(id => id !== 'toi' && this.tapis[id] > 0);
+    const bilan = restants.length === 0
+      ? `Tu as pris tous les jetons de la table : ${montant(this.tapis.toi)}. Chapeau.`
+      : `Fin de la partie : tu termines avec ${montant(this.tapis.toi)} jetons, pour ${montant(def.tapis)} au départ.`;
+    await this.dire(bilan, 'toucher');
+    return true;
   }
 
   majTapis(id) {
     for (const [jid, j] of this.scene.joueurs) {
       if (id && id !== jid) continue;
+      if (this.sortis?.has(jid)) continue;
       const t = this.d?.joueur(jid)?.tapis ?? this.tapis[jid];
       if (jid === 'toi') this.scene.monTapis.textContent = montant(t);
       else j.nom.querySelector('.tapis-n').textContent = montant(t);
@@ -98,11 +165,14 @@ export class Partie {
   // ---------- une donne ----------
   async jouerDonne(dd, index) {
     this.dd = dd;
-    const [petite, grosse] = this.def.blindes;
+    this.demo = !!dd.cartesSurTable;
+    const [petite, grosse] = dd.blindes || this.blindes;
+    for (const [id, t] of Object.entries(dd.tapis || {})) this.tapis[id] = t;
+    this.majTapis();
     const mains = Object.fromEntries(Object.entries(dd.mains || {}).map(([id, t]) => [id, lire(t)]));
     this.d = new Donne({
       joueurs: this.def.joueurs.map(id => ({ id, nom: FICHES[id]?.nom || 'Toi', tapis: this.tapis[id] })),
-      bouton: dd.bouton, petite, grosse, mains, tableau: lire(dd.tableau), rng: this.rng,
+      bouton: dd.bouton, petite, grosse, mains, tableau: lire(dd.tableau || ''), rng: this.rng,
     });
     this.cartes = Object.fromEntries(this.def.joueurs.map(id => [id, []]));
     this.cartesTableau = [];
@@ -115,8 +185,13 @@ export class Partie {
     await this.animer(evts);
     while (!this.d.finie) {
       const j = this.d.joueurActif;
-      if (j) {
-        const avant = j.id === 'toi' ? this.photoToi() : null;
+      if (j && this.demo) {
+        // cartes sur table : personne ne mise, on regarde les combinaisons se former
+        const o = this.d.options(j.id);
+        evts = this.d.agir(j.id, { type: o.peutParler ? 'parole' : 'suivre' });
+        await this.animer(evts);
+      } else if (j) {
+        const avant = j.id === 'toi' && this.def.coach <= 2 ? this.photoToi() : null;
         const action = j.id === 'toi' ? await this.tourToi() : await this.tourAdversaire(j);
         evts = this.d.agir(j.id, action);
         await this.animer(evts);
@@ -129,6 +204,10 @@ export class Partie {
       }
     }
     await this.recit('fin', { resultat: this.d.resultat, toiAPaye: this.toiAPaye });
+    if (dd.echelle) {
+      await montrerEchelle(this.scene, { vues: this.vues, nouvelles: dd.echelle, lecon: true });
+      dd.echelle.forEach(c => this.vues.add(c));
+    }
     for (const [id, t] of Object.entries(this.d.tapisFinaux())) this.tapis[id] = t;
     await this.toucherPourContinuer();
     await this.ranger();
@@ -148,8 +227,8 @@ export class Partie {
     else if (this.def.coach <= 1) await this.dire(this.explicationTour(o));
     const action = await this.plaques.demander(o, {
       conseil: this.def.coach <= 2 ? conseil : null,
-      pas: this.def.blindes[0] >= 5 ? 5 : 1,
-      avertirCouche: () => this.dire('Attention : personne n’a misé, tu peux dire <b>parole</b> sans rien payer. Te coucher maintenant, c’est abandonner une main gratuite.'),
+      pas: this.blindes[0] >= 5 ? 5 : 1,
+      avertirCouche: this.def.coach <= 2 ? () => this.dire('Personne n’a misé : tu peux dire <b>parole</b> sans rien payer.') : null,
     });
     return action;
   }
@@ -203,7 +282,7 @@ export class Partie {
     if (force) decision = typeof force === 'string' ? { type: force, intention: 'moyen' } : { intention: 'moyen', ...force };
     else decision = decider(this.d, j.id, profilAuNiveau(j.id, this.def.niveau || 0), this.rng);
     if (!mouvementReduit()) s.perso.pencher();
-    await attendre(hasard(650, 1250) * this.vitesse);
+    await attendre((this.def.libre ? hasard(420, 900) : hasard(550, 1000)) * this.vitesse);
     // Les tics : ce qui trahit chacun
     if (j.id === 'baron' && decision.intention === 'bluff') s.perso.hausserSourcil();
     if (j.id === 'odette' && decision.intention === 'valeur') s.perso.retirerLunettes(true);
@@ -221,6 +300,8 @@ export class Partie {
     if (evt.tapis && (quoi === 'miser' || quoi === 'relancer' || quoi === 'suivre')) quoi = 'tapis';
     const ligne = replique(evt.id, quoi, { x: montant(j.mise), pot: montant(this.d.pot) });
     if (!ligne) return;
+    // une seule bulle d'adversaire à la fois
+    for (const [autre, a] of this.scene.joueurs) if (autre !== evt.id && a.bulle) { clearTimeout(a.minuteurBulle); a.bulle.cacher(); }
     s.bulle.dire(ligne);
     clearTimeout(s.minuteurBulle);
     s.minuteurBulle = setTimeout(() => s.bulle.cacher(), 2400);
@@ -234,6 +315,7 @@ export class Partie {
         case 'distribution':
           await this.recit('blindes');
           await this.distribuer(e.ordre);
+          if (this.demo) await this.retournerMains(e.ordre.filter(id => id !== 'toi'), true);
           this.majEtiquette();
           await this.recit('cartes');
           break;
@@ -345,6 +427,10 @@ export class Partie {
 
   async animerAction(e) {
     const id = e.id;
+    if (this.demo) {
+      if (e.montant) await this.animerMise(id, e.montant, false);
+      return;
+    }
     this.repliqueAction(e);
     const s = this.scene.joueurs.get(id);
     if (e.action === 'coucher') {
@@ -481,27 +567,34 @@ export class Partie {
     this.scene.joueurs.forEach(j => j.perso?.regarder(0, 1.6));
   }
 
-  /** Retourne les cartes des adversaires : on les agrandit pour qu'on les lise. */
+  /** Cartes montrées par un adversaire : posées devant lui, au bord de la table, au-dessus de son nom. */
+  posRevele(id, k) {
+    const n = this.scene.joueurs.get(id).nom;
+    return { x: parseFloat(n.style.left) - 15 + k * 30, y: parseFloat(n.style.top) - 30, rot: k ? 4 : -4, w: 34 };
+  }
+
+  /** Retourne les cartes des adversaires : elles glissent devant eux et grandissent pour qu'on les lise. */
   async retournerMains(ids, tapis = false) {
     for (const id of ids) {
       if (id === 'toi') continue;
       const petites = this.cartes[id];
       if (!petites.length || petites[0].dataset.grande) continue;
       const j = this.d.joueur(id);
-      const base = this.posCarte(id, 0);
-      const vers195 = base.x < 195 ? 1 : base.x > 195 ? -1 : 0;
       const grandes = j.cartes.map((c, k) => {
-        const el = creerCarte(c, 40);
+        const el = creerCarte(c, 34);
         el.dataset.grande = '1';
         this.scene.cartesTable.appendChild(el);
-        const p = { x: base.x + 6 + vers195 * 14 + k * 30, y: base.y + 26, rot: k ? 4 : -4 };
-        gsap.set(el, { x: p.x - 20, y: p.y - 28.4, rotation: p.rot, rotationY: 180, scale: 0.55, transformPerspective: 700 });
+        const depart = this.posCarte(id, k);
+        gsap.set(el, { x: depart.x - 17, y: depart.y - 24, rotation: depart.rot, rotationY: 180, scale: 0.65, transformPerspective: 700 });
         return el;
       });
       petites.forEach(el => el.remove());
       this.cartes[id] = grandes;
       sons.jouer('pose', { volume: 0.65 });
-      await gsap.to(grandes, { rotationY: 0, scale: 1, duration: 0.45, ease: 'back.out(1.5)', stagger: 0.1 });
+      await gsap.to(grandes, {
+        x: k => this.posRevele(id, k).x - 17, y: k => this.posRevele(id, k).y - 24, rotation: k => this.posRevele(id, k).rot,
+        rotationY: 0, scale: 1, duration: 0.5, ease: 'back.out(1.4)', stagger: 0.1,
+      });
       if (!tapis) await attendre(250);
     }
   }
@@ -519,14 +612,12 @@ export class Partie {
         await this.retournerMains([id]);
       }
       if (id === 'toi') { await attendre(300); continue; } // ta main est déjà nommée sous tes cartes
-      const nom = creer('div', 'main-nom', nommer(e.mains[id]));
-      // le nom de la main se pose au-dessus des cartes retournées
-      const p = this.posCarte(id, 0);
-      const vers195 = p.x < 195 ? 1 : p.x > 195 ? -1 : 0;
-      Object.assign(nom.style, { left: p.x + 21 + vers195 * 14 + 'px', top: p.y - 26 + 'px' });
-      this.scene.vol.appendChild(nom);
+      // le nom de la main remplace le tapis, sous le nom du joueur
+      const ligne = this.scene.joueurs.get(id).nom.querySelector('.tapis-n');
+      ligne.innerHTML = `<span class="main-nom-p">${nommer(e.mains[id])}</span>`;
+      const nom = ligne.firstChild;
       etiquettes.push([id, nom]);
-      gsap.fromTo(nom, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.3 });
+      gsap.fromTo(nom, { opacity: 0, y: 4 }, { opacity: 1, y: 0, duration: 0.3 });
       await attendre(380);
     }
     this.etiquettesAbattage = etiquettes;
@@ -584,23 +675,34 @@ export class Partie {
       const l = replique(id, gagne ? 'gagne' : 'perd');
       if (l && (gagne || e.abattage)) { s.bulle.dire(l); setTimeout(() => s.bulle.cacher(), 2600); }
     }
-    await this.expliquerResultat(e);
+    if (!this.dd.sansExplication) await this.expliquerResultat(e);
   }
 
   async expliquerResultat(e) {
     const p = e.pots[0];
     const ids = p.gagnants.map(g => g.id);
+    const mode = this.def.coach <= 1 ? 'toucher' : 'lecture';
     if (!e.abattage) {
+      if (this.def.coach >= 3) return;
       const g = ids[0];
       await this.dire(g === 'toi'
         ? 'Tout le monde s’est couché : le pot est à toi, sans montrer tes cartes.'
-        : `${FICHES[g].nom} ramasse le pot sans montrer ses cartes : tous les autres se sont couchés.`, true);
+        : `${FICHES[g].nom} ramasse le pot sans montrer ses cartes : tous les autres se sont couchés.`, mode);
+      return;
+    }
+    const annexes = e.pots.filter((x, i) => i > 0 && !x.retour);
+    const memesGagnants = annexes.every(x => x.gagnants.map(g => g.id).join() === ids.join());
+    if (annexes.length && !memesGagnants) {
+      const qui = id => (id === 'toi' ? 'toi' : FICHES[id].nom);
+      const principal = ids.map(qui).join(' et ');
+      const annexe = [...new Set(annexes.flatMap(x => x.gagnants.map(g => g.id)))].map(qui).join(' et ');
+      await this.dire(`Le pot principal va à ${principal}, le <b>pot annexe</b> à ${annexe}.`, mode);
       return;
     }
     if (ids.length > 1) {
       const autres = ids.filter(id => id !== 'toi').map(nomDe);
       const qui = ids.includes('toi') ? `${autres.join(', ')} et toi avez` : `${autres.slice(0, -1).join(', ')} et ${autres[autres.length - 1]} ont`;
-      await this.dire(`Égalité : ${qui} la même main, ${minuscule(nommer(e.mains[ids[0]]))}. Le pot est <b>partagé</b>.`, true);
+      await this.dire(`Égalité : ${qui} la même main, ${minuscule(nommer(e.mains[ids[0]]))}. Le pot est <b>partagé</b>.`, mode);
       return;
     }
     const g = ids[0];
@@ -610,25 +712,28 @@ export class Partie {
     const eg = e.mains[g], ep = e.mains[pr];
     const dep = departage(eg, ep);
     let texte;
-    if (dep.type === 'kicker') {
+    if (dep.type === 'kicker' && eg.cat === 0) {
+      const les2 = g === 'toi' || pr === 'toi' ? 'Personne n’a de combinaison et vous avez' : `${nomDe(g)} et ${nomDe(pr)} n’ont pas de combinaison et ont`;
+      texte = `L’<b>abattage</b>. ${les2} la même carte haute, ${eg.tb[0] === 14 ? 'l’As' : nomRang(eg.tb[0]) === 'Dame' ? 'la Dame' : 'le ' + nomRang(eg.tb[0])}. On compare la suivante : ${possessif(g, dep.a)} bat ${possessif(pr, dep.b)}.`;
+    } else if (dep.type === 'kicker') {
       const les2 = g === 'toi' || pr === 'toi' ? 'Vous avez tous les deux' : `${nomDe(g)} et ${nomDe(pr)} ont tous les deux`;
       texte = `L’<b>abattage</b>. ${les2} ${unUne(eg)}${minuscule(nommer(eg))}. On compare alors la carte d’à côté, le <b>kicker</b> : ${possessif(g, dep.a)} bat ${possessif(pr, dep.b)}.`;
     } else {
       texte = `L’<b>abattage</b> : ${mainDe(g, eg)} bat ${mainDe(pr, ep)}.`;
     }
     texte += g === 'toi' ? ' Le pot est à toi.' : '';
-    await this.dire(majuscule(texte), true);
+    await this.dire(majuscule(texte), mode);
   }
 
   async ranger() {
     this.lumiere.relacher();
+    if (this.def.coach >= 2) this.scene.bulleLucien.cacher();
     for (const s of this.scene.joueurs.values()) {
       s.bulle?.cacher();
       if (s.perso) { s.perso.eteindre(false); s.perso.retirerLunettes(false); s.perso.rangerTelephone(false); }
       s.nom?.classList.remove('couche', 'parle');
       if (s.mise) s.mise.innerHTML = '';
     }
-    for (const [, nom] of this.etiquettesAbattage || []) gsap.to(nom, { opacity: 0, duration: 0.2, onComplete: () => nom.remove() });
     this.etiquettesAbattage = [];
     const o = this.scene.origineDonne;
     const toutes = [...this.scene.cartesTable.children];

@@ -1,26 +1,22 @@
-// Les parties du Cercle. Les premières sont scénarisées : le paquet est préparé pour que
-// la situation à apprendre arrive, mais tu joues librement et Lucien s'adapte.
+// Le parcours du Cercle : une initiation courte en trois leçons (le déroulement,
+// les combinaisons, les exceptions), puis des tables libres de plus en plus dures.
 //
 // Une donne scénarisée :
 //   bouton, mains { id: 'As Kh' }, tableau 'Ad 8c 3h 5s Jh'
+//   cartesSurTable : tout le monde montre sa main et personne ne mise (démonstration rapide)
+//   blindes [petite, grosse] et tapis { id: n } pour cette donne seulement
 //   ia { id: ({o, rue, d}) => action | null }  (null : l'adversaire décide seul)
-//   recit : moments où Lucien parle (fonctions async qui reçoivent L et le contexte)
-//     avant, blindes, cartes, conseil (renvoie {type, a, texte}), apresAction, rue, fin
+//   recit : ce que dit Lucien (avant, cartes, conseil, apresAction, rue, fin)
+//   echelle : combinaisons à tamponner sur l'échelle après l'abattage
+//   sansExplication : Lucien ne commente pas l'abattage à sa façon habituelle (le récit s'en charge)
 
-const dizaine = x => Math.max(20, Math.round(x / 10) * 10);
+const T = 'toucher'; // Lucien attend un toucher pour continuer
 
-const P1 = {
-  id: 'p1', numero: 1, titre: 'Première main', resume: 'Blindes, flop, abattage, kicker',
+const DEROULEMENT = {
+  id: 'l2', numero: 2, groupe: 'Initiation', titre: 'Le déroulement', resume: 'Blindes, enchères, flop, turn, river, abattage',
   joueurs: ['toi', 'odette', 'baron'], tapis: 1000, blindes: [10, 20], coach: 1,
-  ouverture: [
-    'Bonsoir. Moi, c’est Lucien, le croupier du Cercle.',
-    'Ici, pas de leçon au tableau : on joue de vraies mains, et je t’explique au fur et à mesure.',
-    'Ce soir, tu joues contre Odette et le Baron. Chacun commence avec 1 000 jetons.',
-  ],
-  cloture: [
-    'Première partie terminée. Tu sais suivre, te coucher, relancer et lire un abattage.',
-    'La prochaine fois, on parle de la couleur. Et le Baron voudra sa revanche.',
-  ],
+  ouverture: ['Maintenant, une vraie main, avec des mises. Je t’explique au fil des cartes.'],
+  cloture: ['Voilà comment se joue une main. Dernière leçon : les cas particuliers.'],
   donnes: [
     {
       bouton: 'toi',
@@ -31,32 +27,26 @@ const P1 = {
         baron: ({ o, rue }) => (rue === 0 ? 'parole' : rue === 1 && o.peutParler ? { type: 'relancer', a: 40 } : o.peutParler ? 'parole' : 'suivre'),
       },
       recit: {
-        avant: L => L.dire('Le disque blanc devant toi, c’est le <b>bouton</b>. Il tourne d’un joueur à chaque donne. Celui qui l’a parle en dernier après le flop : c’est la meilleure place.', true),
-        blindes: L => L.dire('Odette et le Baron posent les <b>blindes</b>, 10 et 20. Ce sont des mises obligatoires : il y a toujours quelque chose à gagner.', true),
-        cartes: L => L.dire('Deux cartes chacun, face cachée. Ton <b>K</b>, c’est un Roi : sur toutes les tables, A, K, Q et J veulent dire As, Roi, Dame et Valet.', true),
+        avant: L => L.dire('Le jeton D, c’est le <b>bouton</b> : il tourne à chaque donne. Les deux joueurs à sa gauche posent les <b>blindes</b>, des mises obligatoires.', T),
+        cartes: L => L.dire('Deux cartes chacun, face cachée cette fois : elles ne sont qu’à toi.'),
         conseil: ({ o, rue }) => {
-          if (rue === 0) return { type: 'suivre', texte: 'À trois, le bouton parle en premier avant le flop. Pour rester dans le coup, <b>suis</b> la grosse blinde : 20 jetons.' };
-          if (rue === 1 && !o.peutParler) return { type: 'suivre', texte: 'Le Baron mise 40. Avec ta paire de Rois, <b>suivre</b> est raisonnable.' };
-          if (rue === 1) return { type: 'parole', texte: 'Personne n’a misé. Tu peux dire <b>parole</b> : tu restes sans rien payer.' };
-          if (rue === 2) return o.peutParler
-            ? { type: 'parole', texte: 'Il dit parole : il passe sans miser. Toi aussi, tu peux <b>parler</b>. Ça ne coûte rien.' }
-            : { type: 'suivre', texte: 'Il mise encore. Ta paire tient toujours : tu peux suivre.' };
-          if (rue === 3) return o.peutParler
-            ? { type: 'relancer', a: 60, texte: 'Dernière carte. Tu penses être devant ? <b>Mise</b> : s’il a moins bien, il paiera peut-être.' }
-            : { type: 'suivre', texte: 'Dernière mise à payer avant l’abattage. Ta paire de Rois vaut bien ça.' };
-          return null;
+          if (rue === 0) return { type: 'suivre', texte: 'À toi de parler. Pour jouer la main, <b>suis</b> la grosse blinde : 20.' };
+          if (rue === 1 && !o.peutParler) return { type: 'suivre', texte: 'Il <b>mise</b> 40. Tu peux suivre, <b>relancer</b> ou te <b>coucher</b>. Avec ta paire, suis.' };
+          if (o.peutParler && rue < 3) return { type: 'parole', texte: 'Personne ne mise : dis <b>parole</b>, ça ne coûte rien.' };
+          if (rue === 3 && o.peutParler) return { type: 'relancer', a: 60, texte: 'Dernière carte. <b>Mise</b> : s’il a moins bien, il paiera.' };
+          return { type: 'suivre', texte: 'Suis pour voir sa main.' };
         },
         apresAction: (L, { evt, rue }) => {
-          if (evt.id === 'baron' && rue === 0 && evt.action === 'parole') return L.dire('Odette complète sa blinde, le Baron dit <b>parole</b> : il ne rajoute rien. Tout le monde a misé autant, on passe au flop.');
-          if (evt.id === 'odette' && evt.action === 'coucher') return L.dire('Odette se <b>couche</b> : elle rend ses cartes et laisse ce qu’elle a déjà misé.');
+          if (evt.id === 'baron' && rue === 0 && evt.action === 'parole') return L.dire('Tout le monde a misé autant : on passe aux cartes communes.');
+          if (evt.id === 'odette' && evt.action === 'coucher') return L.dire('Odette se <b>couche</b> : elle abandonne sa main et sa mise.');
           return null;
         },
         rue: (L, { rue, toiEnJeu }) => {
           if (rue === 1) return L.dire(toiEnJeu
-            ? 'Le <b>flop</b> : trois cartes communes, pour tout le monde. Ta main, ce sont les cinq meilleures cartes entre les tiennes et celles-ci. Un Roi ! Avec le tien, ça fait une <b>paire de Rois</b>.'
-            : 'Le <b>flop</b> : trois cartes communes. Regarde : un Roi. Avec tes cartes, tu aurais eu une paire de Rois.', true);
-          if (rue === 2) return L.dire('Le <b>turn</b>, quatrième carte commune. Nouveau tour d’enchères.');
-          if (rue === 3) return L.dire('La <b>river</b>, la dernière. Après ce tour, on montre les cartes.');
+            ? 'Le <b>flop</b> : les trois premières cartes communes. Avec ton Roi, tu as une paire de Rois.'
+            : 'Le <b>flop</b> : trois cartes communes, pour tout le monde.', T);
+          if (rue === 2) return L.dire('Le <b>turn</b> : une quatrième carte, et un nouveau tour d’enchères.');
+          if (rue === 3) return L.dire('La <b>river</b> : la dernière. Ensuite, on montre les cartes.');
           return null;
         },
       },
@@ -67,63 +57,163 @@ const P1 = {
       tableau: 'Ac 9h 5s Qd 3c',
       ia: {
         odette: () => 'coucher',
-        baron: ({ o, rue }) => {
-          if (rue === 0) return o.miseMax <= 20 ? { type: 'relancer', a: 60 } : 'suivre';
-          return o.peutParler ? { type: 'relancer', a: dizaine(o.pot * 0.6) } : 'suivre';
-        },
+        baron: ({ o, rue }) => (rue === 0 ? (o.miseMax <= 20 ? { type: 'relancer', a: 60 } : 'suivre') : o.peutParler ? { type: 'relancer', a: Math.max(20, Math.round((o.pot * 0.6) / 10) * 10) } : 'suivre'),
       },
       recit: {
-        avant: L => L.dire('Le bouton a tourné : Odette l’a. Le Baron pose la petite blinde, toi la <b>grosse</b>. Tes 20 jetons partent tout seuls.', true),
-        cartes: L => L.dire('7 et 2, de couleurs différentes : la pire main du jeu. Voyons ce qu’en pensent les autres.'),
+        avant: L => L.dire('Le bouton passe à Odette. Cette fois, c’est toi qui poses la grosse blinde.'),
+        cartes: L => L.dire('7 et 2 : la plus mauvaise main du jeu.'),
         conseil: ({ o, rue }) => {
-          if (rue === 0 && !o.peutParler) return { type: 'coucher', texte: 'Le Baron <b>relance</b> à 60 : pour continuer, il faudrait payer 40 de plus. Avec 7-2, on se <b>couche</b>. C’est le geste le plus rentable du poker.' };
-          if (rue > 0 && !o.peutParler) return { type: 'coucher', texte: 'Tu n’as rien touché, et lui mise encore. Couche-toi : tu limites la casse.' };
-          return null;
+          if (o.peutParler) return null;
+          return rue === 0
+            ? { type: 'coucher', texte: 'Le Baron <b>relance</b> à 60. Avec 7-2, couche-toi : tu ne perds que ta blinde.' }
+            : { type: 'coucher', texte: 'Rien touché, et il mise encore : couche-toi.' };
         },
-        apresAction: (L, { evt }) => {
-          if (evt.id === 'odette' && evt.action === 'coucher') return L.dire('Odette se couche tout de suite. Elle ne joue que ses bonnes mains : retiens ça pour plus tard.');
-          if (evt.id === 'toi' && evt.action === 'coucher') return L.dire('Bien vu. Tu perds ta blinde, pas plus. Les bons joueurs se couchent bien plus souvent qu’ils ne jouent.');
-          return null;
-        },
-        fin: (L, { toiAPaye }) => (toiAPaye ? L.dire('Avec 7-2, chaque jeton payé était perdu d’avance. Ce n’est pas grave : c’est comme ça qu’on apprend.') : null),
-      },
-    },
-    {
-      bouton: 'baron',
-      mains: { toi: 'As Kc', odette: 'Ah Qd', baron: '9c 6c' },
-      tableau: 'Ad 8c 3h 5s Jh',
-      ia: {
-        baron: ({ o, rue }) => (rue === 0 && o.miseMax <= 20 ? 'suivre' : 'coucher'),
-        odette: ({ o }) => (o.peutParler ? 'parole' : 'suivre'),
-      },
-      recit: {
-        avant: L => L.dire('Le bouton passe au Baron. Cette fois, c’est toi qui poses la petite blinde, et Odette la grosse.'),
-        cartes: L => L.dire('<b>As-Roi</b> ! Une des meilleures mains de départ.', true),
-        conseil: ({ o, rue }) => {
-          if (rue === 0 && !o.peutParler) return { type: 'relancer', a: 60, texte: 'Le Baron a suivi. Avec As-Roi, ne te contente pas de compléter : <b>relance</b> à 60. Ceux qui veulent voir le flop paieront plus cher.' };
-          if (rue >= 1 && o.peutParler) return { type: 'relancer', a: dizaine(o.pot * 0.5), texte: rue === 1 ? 'Une <b>paire d’As</b>, avec un Roi à côté. Tu parles en premier : mise environ la moitié du pot.' : 'Tu es toujours devant. Continue de miser, Odette paie.' };
-          if (rue >= 1) return { type: 'suivre', texte: 'Odette mise. Avec ta paire d’As, tu suis.' };
-          return null;
-        },
-        apresAction: (L, { evt }) => {
-          if (evt.id === 'baron' && evt.action === 'coucher') return L.dire('Le Baron jette ses cartes : trop cher pour lui. Il reste Odette.');
-          return null;
-        },
-        rue: (L, { rue, toiEnJeu }) => (rue === 1 && toiEnJeu ? L.dire('Un As au flop. Tu as une paire d’As. Odette, elle, a payé ta relance : elle a peut-être un As aussi.') : null),
       },
     },
   ],
 };
 
-const bientot = (numero, titre, resume) => ({ id: 'p' + numero, numero, titre, resume, bientot: true });
+const COMBINAISONS = {
+  id: 'l1', numero: 1, groupe: 'Initiation', titre: 'Les combinaisons', resume: 'Les dix mains, de la carte haute à la quinte flush royale',
+  joueurs: ['toi', 'odette', 'baron'], tapis: 1000, blindes: [10, 20], coach: 1,
+  ouverture: [
+    'Bonsoir, moi c’est Lucien, le croupier. Ici, on apprend en jouant.',
+    'D’abord, les combinaisons. Chacun reçoit deux cartes, puis cinq cartes communes arrivent au milieu. Ta main, ce sont tes cinq meilleures cartes parmi les sept.',
+  ],
+  cloture: ['Tu connais les dix combinaisons. Tu les retrouves à tout moment avec le bouton des cartes, en haut. Prochaine leçon : le déroulement d’une main.'],
+  donnes: [
+    {
+      cartesSurTable: true, blindes: [0, 0], bouton: 'toi', echelle: [0, 1, 2], sansExplication: true,
+      mains: { toi: 'Ac 8d', odette: '6h 3c', baron: 'Kc 9d' },
+      tableau: '9s 6d 2c Kh Jd',
+      recit: {
+        cartes: L => L.dire('On joue cartes sur table : tout le monde montre sa main. Sur les cartes, A, K, Q et J veulent dire As, Roi, Dame et Valet.', T),
+        rue: (L, { rue }) => {
+          if (rue === 1) return L.dire('Odette a une <b>paire</b> de 6, le Baron une paire de 9. Toi, rien : tu joues ta <b>carte haute</b>, l’As.', T);
+          if (rue === 2) return L.dire('Un Roi : le Baron a maintenant deux paires, une <b>double paire</b>.', T);
+          return null;
+        },
+        fin: L => L.dire('Carte haute, paire, double paire : le bas de l’échelle.', T),
+      },
+    },
+    {
+      cartesSurTable: true, blindes: [0, 0], bouton: 'odette', echelle: [3, 4, 5], sansExplication: true,
+      mains: { toi: 'Ah 4h', odette: 'Ts 9c', baron: '7s 7c' },
+      tableau: '7d 8h Jc Qh 2h',
+      recit: {
+        rue: (L, { rue }) => {
+          if (rue === 1) return L.dire('Trois 7 pour le Baron : un <b>brelan</b>.', T);
+          if (rue === 2) return L.dire('La Dame donne à Odette cinq cartes qui se suivent, de 8 à la Dame : une <b>quinte</b>.', T);
+          if (rue === 3) return L.dire('Un cœur ! Tu as cinq cartes de la même couleur : une <b>couleur</b>.', T);
+          return null;
+        },
+        fin: L => L.dire('La couleur bat la quinte, qui bat le brelan. Cette fois, c’est toi qui gagnes.', T),
+      },
+    },
+    {
+      cartesSurTable: true, blindes: [0, 0], bouton: 'baron', echelle: [6, 7, 8, 9], sansExplication: true,
+      mains: { toi: 'Qs Qd', odette: '5d 5c', baron: '7s 9s' },
+      tableau: '5s 5h Qc 8s 6s',
+      recit: {
+        rue: (L, { rue }) => {
+          if (rue === 1) return L.dire('Toi : trois Dames et deux 5, un <b>full</b>. Odette : les quatre 5, un <b>carré</b>.', T);
+          if (rue === 3) return L.dire('Le 6 de pique ! Le Baron a cinq piques qui se suivent : une <b>quinte flush</b>.', T);
+          return null;
+        },
+        fin: L => L.dire('Au-dessus de la quinte flush, il n’y a que la <b>quinte flush royale</b> : 10, J, Q, K, As de la même couleur.', T),
+      },
+    },
+  ],
+};
 
-export const PARTIES = [
-  P1,
-  bientot(2, 'La couleur', 'Tirages, couleur, quinte, miser pour être payé'),
-  bientot(3, 'Le bluff du Baron', 'Bluffer, lire un adversaire, se coucher face à la force'),
-  bientot(4, 'Tapis', 'Faire tapis, pots annexes'),
-  bientot(5, 'Le pot partagé', 'Égalités, le tableau joue'),
-  bientot(6, 'Kiki s’installe', 'Partie libre à quatre'),
-  bientot(7, 'La grande table', 'Partie libre, adversaires plus forts'),
-  bientot(8, 'Le Notaire', 'Partie libre contre le meilleur joueur du Cercle'),
-];
+const EXCEPTIONS = {
+  id: 'l3', numero: 3, groupe: 'Initiation', titre: 'Les exceptions', resume: 'Kicker, pot partagé, la roue, tapis et pot annexe',
+  joueurs: ['toi', 'odette', 'baron'], tapis: 1000, blindes: [10, 20], coach: 1,
+  ouverture: ['Quatre cas particuliers, et tu connais toutes les règles. Les trois premiers, cartes sur table.'],
+  cloture: ['C’est tout pour les règles. Maintenant, à toi de jouer : je te laisse la table.'],
+  donnes: [
+    {
+      cartesSurTable: true, blindes: [0, 0], bouton: 'toi', sansExplication: true,
+      mains: { toi: 'As Kc', odette: 'Ah Qd', baron: '9c 6c' },
+      tableau: 'Ad 8c 3h 5s Jh',
+      recit: {
+        rue: (L, { rue }) => (rue === 1 ? L.dire('Un As au flop : Odette et toi avez la même <b>paire d’As</b>.', T) : null),
+        fin: L => L.dire('Même paire ? On compare la carte d’à côté, le <b>kicker</b> : ton Roi bat sa Dame.', T),
+      },
+    },
+    {
+      cartesSurTable: true, bouton: 'odette', sansExplication: true,
+      mains: { toi: 'Ac 2d', odette: 'Kh 3c', baron: 'Jd Jc' },
+      tableau: '5s 6d 7c 8h 9s',
+      recit: {
+        rue: (L, { rue }) => (rue === 3 ? L.dire('Le tableau fait une quinte à lui seul, de 5 à 9.', T) : null),
+        fin: L => L.dire('Personne ne fait mieux : <b>le tableau joue</b>, et le pot est partagé. Seules cinq cartes comptent, alors ton As ne sert à rien.', T),
+      },
+    },
+    {
+      cartesSurTable: true, blindes: [0, 0], bouton: 'baron', sansExplication: true,
+      mains: { toi: 'As 2h', odette: 'Kd Kc', baron: 'Qc Jc' },
+      tableau: '3c 4d 5h Ks 9d',
+      recit: {
+        rue: (L, { rue }) => {
+          if (rue === 1) return L.dire('As, 2, 3, 4, 5 : une quinte ! Ici, l’As compte pour 1. C’est la plus petite quinte, <b>la roue</b>.', T);
+          if (rue === 2) return L.dire('Odette touche un brelan de Rois. Mais une quinte bat un brelan.', T);
+          return null;
+        },
+        fin: L => L.dire('L’As peut être tout en haut (10-J-Q-K-A) ou tout en bas (A-2-3-4-5), jamais au milieu.', T),
+      },
+    },
+    {
+      bouton: 'baron', tapis: { odette: 150 }, sansExplication: true,
+      mains: { toi: 'Kh Kc', odette: 'As Ad', baron: 'Qs Js' },
+      tableau: '2c 7d 9s 4h 3c',
+      ia: {
+        baron: ({ o, rue }) => {
+          if (rue === 0) return o.miseMax <= 20 ? { type: 'relancer', a: 60 } : 'suivre';
+          if (rue === 1) return o.peutParler ? { type: 'relancer', a: 100 } : 'suivre';
+          return o.peutParler ? 'parole' : 'suivre';
+        },
+        odette: () => 'tapis',
+      },
+      recit: {
+        avant: L => L.dire('Dernier cas, avec de vrais jetons. Odette n’a plus que 150 jetons.'),
+        conseil: ({ o, rue }) => {
+          if (rue === 0) return { type: 'suivre', texte: o.suivreEstTapis ? 'Suis.' : 'Deux Rois : suis.' };
+          if (o.peutParler) return { type: 'parole', texte: 'Dis parole.' };
+          return { type: 'suivre', texte: 'Suis.' };
+        },
+        apresAction: (L, { evt }) => {
+          if (evt.id === 'odette' && evt.tapis) return L.dire('Odette fait <b>tapis</b> : elle mise tous ses jetons. Elle ne pourra gagner, contre chacun, que ce qu’elle a misé.', T);
+          return null;
+        },
+        rue: (L, { rue }) => (rue === 1 ? L.dire('Odette n’a plus de jetons : elle ne parle plus. Ce que vous misez maintenant, le Baron et toi, va dans un pot à part, le <b>pot annexe</b>. Elle ne peut pas le gagner.', T) : null),
+        fin: L => L.dire('Odette gagne le <b>pot principal</b> avec sa paire d’As. Le pot annexe se jouait entre le Baron et toi : ta paire de Rois l’emporte.', T),
+      },
+    },
+  ],
+};
+
+const PALIERS = [[10, 20], [20, 40], [40, 80], [75, 150], [100, 200], [150, 300]];
+
+const T1 = {
+  id: 't1', numero: 4, groupe: 'Tables', titre: 'La table du Baron', resume: 'Partie libre à trois',
+  joueurs: ['toi', 'odette', 'baron'], tapis: 1000, blindes: PALIERS[0], coach: 2, niveau: 0,
+  libre: { mains: 14, montee: 5, paliers: PALIERS },
+  ouverture: ['Partie libre. Je ne te dis plus quoi jouer : je ne parle que si tu fais une vraie erreur.'],
+};
+
+const T2 = {
+  id: 't2', numero: 5, groupe: 'Tables', titre: 'Kiki s’installe', resume: 'Partie libre à quatre',
+  joueurs: ['toi', 'odette', 'baron', 'kiki'], tapis: 1000, blindes: PALIERS[0], coach: 3, niveau: 0.3,
+  libre: { mains: 16, montee: 5, paliers: PALIERS },
+  ouverture: ['Kiki s’installe. Il paie tout ce qu’on lui propose : mise quand tu as du jeu, et ne le bluffe pas.'],
+};
+
+const T3 = {
+  id: 't3', numero: 6, groupe: 'Tables', titre: 'Le Notaire', resume: 'Le meilleur joueur du Cercle',
+  joueurs: ['toi', 'baron', 'kiki', 'notaire'], tapis: 1000, blindes: PALIERS[0], coach: 3, niveau: 0.6,
+  libre: { mains: 18, montee: 4, paliers: PALIERS },
+  ouverture: ['Le Notaire joue peu de mains, et presque toujours juste. Bonne chance.'],
+};
+
+export const PARTIES = [COMBINAISONS, DEROULEMENT, EXCEPTIONS, T1, T2, T3];
