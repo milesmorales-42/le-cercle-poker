@@ -116,7 +116,7 @@ button { font: inherit; color: inherit; }
 .pot-t > span { font: 500 12.5px/1 var(--f-texte); color: var(--carton-doux); margin-bottom: 4px; }
 
 /* compteur à rouleaux */
-.compteur { display: inline-flex; font: 400 28px/1 var(--f-titre); font-variant-numeric: lining-nums tabular-nums; height: 1.2em; overflow: hidden; }
+.compteur { display: inline-flex; align-items: flex-start; font: 400 28px/1 var(--f-titre); font-variant-numeric: lining-nums tabular-nums; height: 1.2em; overflow: hidden; }
 .compteur .col { display: inline-flex; flex-direction: column; width: .62em; text-align: center; }
 .compteur .col span { height: 1.2em; line-height: 1.2em; }
 .compteur .sep { width: .25em; }

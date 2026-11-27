@@ -7,6 +7,7 @@ import { Donne } from '../moteur/donne.js';
 import { lire, nomRang } from '../moteur/cartes.js';
 import { meilleure, nommer, titre, departage } from '../moteur/evaluation.js';
 import { decider, profilAuNiveau } from '../moteur/ia.js';
+import { chen, equite } from '../moteur/force.js';
 import { generateur } from '../moteur/hasard.js';
 import { creerCarte, devoiler } from '../ui/cartes.js';
 import { volerJetons, dessinerPile, decomposer } from '../ui/jetons.js';
@@ -43,7 +44,7 @@ export class Partie {
   // ---------- Lucien ----------
   async dire(html, attendreToucher = false) {
     const b = this.scene.bulleLucien;
-    gsap.fromTo(this.scene.lucien.tete, { y: 0 }, { y: '+=1.6', duration: 0.18, yoyo: true, repeat: 1 });
+    gsap.to(this.scene.lucien.tete, { y: 1.6, duration: 0.18, yoyo: true, repeat: 1 });
     await b.dire(html);
     if (attendreToucher) {
       b.attendre(true);
@@ -115,11 +116,13 @@ export class Partie {
     while (!this.d.finie) {
       const j = this.d.joueurActif;
       if (j) {
+        const avant = j.id === 'toi' ? this.photoToi() : null;
         const action = j.id === 'toi' ? await this.tourToi() : await this.tourAdversaire(j);
         evts = this.d.agir(j.id, action);
         await this.animer(evts);
         if (j.id === 'toi' && evts[0].montant > 0) this.toiAPaye = true;
-        await this.recit('apresAction', { evt: evts[0], rue: evts[0].rue });
+        const dit = await this.recit('apresAction', { evt: evts[0], rue: evts[0].rue });
+        if (!dit && j.id === 'toi' && this.def.coach <= 2) await this.commenterChoix(evts[0], avant);
       } else {
         evts = this.d.avancer();
         await this.animer(evts);
@@ -149,6 +152,37 @@ export class Partie {
       avertirCouche: () => this.dire('Attention : personne n’a misé, tu peux dire <b>parole</b> sans rien payer. Te coucher maintenant, c’est abandonner une main gratuite.'),
     });
     return action;
+  }
+
+  /** Ta situation juste avant de jouer : force de ta main et ce qu'il fallait payer. */
+  photoToi() {
+    const toi = this.d.joueur('toi');
+    const o = this.d.options('toi');
+    const adversaires = Math.max(1, this.d.enJeu.length - 1);
+    const force = this.d.rue === 0 ? null : equite(toi.cartes, this.d.tableau, adversaires, 300, this.rng);
+    return { o, note: chen(toi.cartes), force, rue: this.d.rue, main: this.scene.etiquette.textContent };
+  }
+
+  /** Lucien réagit à tes choix : il relève les vraies erreurs, et salue parfois un bon coup. */
+  async commenterChoix(evt, avant) {
+    if (!avant) return;
+    const { o, note, force, rue, main } = avant;
+    if (evt.action === 'coucher') {
+      if (rue === 0 && note >= 12) {
+        const nom = main.startsWith('Paire') ? 'une ' + minuscule(main) : main.replace(', assorties', '');
+        await this.dire(`Jeter ${nom} ? C’est une des meilleures mains de départ. Face à une petite mise, on la joue.`);
+      } else if (rue > 0 && force >= 0.65 && o.aSuivre <= o.pot * 0.75) {
+        await this.dire(`Dommage : avec ${minuscule(main)}, tu étais sûrement devant. Pour une mise de cette taille, on suit.`);
+      }
+      return;
+    }
+    if (evt.action === 'suivre' && evt.tapis && force !== null && force < 0.3) {
+      await this.dire('Suivre à tapis avec une main aussi faible, c’est risquer toute la partie sur un coup de chance. Croisons les doigts.');
+      return;
+    }
+    if ((evt.action === 'miser' || evt.action === 'relancer') && force !== null && force >= 0.75 && Math.random() < 0.5) {
+      await this.dire(hasard(0, 1) < 0.5 ? 'Joli. Avec une main pareille, il faut faire payer.' : 'Bien. Tu mises quand tu es devant : c’est tout le jeu.');
+    }
   }
 
   explicationTour(o) {

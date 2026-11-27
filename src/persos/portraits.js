@@ -63,7 +63,7 @@ export function baron() {
 <path d="M117 248C118 260 119 270 120 278" stroke="#CF5640" stroke-width="1.3" fill="none" stroke-linecap="round"/>
 <circle cx="120" cy="245" r="3.1" fill="#C99A3E"/><circle cx="119" cy="244" r="1.1" fill="#FCE7B0"/>
 </g>
-<g data-part="tete" transform="translate(120 110)">
+<g data-part="tete"><g transform="translate(120 110)">
 <path d="M-21 50C-22 62 -24 80 -28 100L28 100C24 80 22 62 21 50Z" fill="${s0}"/>
 <path d="M-39 -6C-46 -10 -50 -2 -49 10C-48 22 -45 32 -39 34Z" fill="${s1}"/>
 <path d="M39 -6C46 -10 50 -2 49 10C48 22 45 32 39 34Z" fill="${s0}"/>
@@ -120,7 +120,7 @@ ${oeil({ x: 17, y: 1, regard: [1, 0.4], paupiere: 0.4, id: oD })}
 <path d="M-10 -62C-2 -69 8 -72 18 -72" stroke="#8C7B6A" stroke-width="1.3"/>
 <path d="M-24 -68C-14 -76 -4 -78 6 -78C16 -77 24 -72 30 -66" stroke="#C9A27A" stroke-width="1.3" opacity=".32"/>
 </g>
-</g>
+</g></g>
 <rect width="240" height="300" fill="url(#${ch})"/>
 </svg>`;
 }
@@ -148,7 +148,7 @@ export function lucien() {
 <path d="M103 218C107 216 112 217 115 220M137 218C133 216 128 217 125 220" stroke="#3A3330" stroke-width="1.3" fill="none"/>
 <rect x="115.5" y="217" width="9" height="10" rx="2.4" fill="#1A1514"/>
 </g>
-<g data-part="tete" transform="translate(120 112)">
+<g data-part="tete"><g transform="translate(120 112)">
 <path d="M-22 48C-23 62 -25 80 -29 100L29 100C25 80 23 62 22 48Z" fill="${s0}"/>
 <path d="M-41 -8C-50 -12 -54 -2 -52 12C-51 25 -46 34 -40 34Z" fill="${s1}"/>
 <path d="M41 -8C50 -12 54 -2 52 12C51 25 46 34 40 34Z" fill="#55331F"/>
@@ -207,7 +207,7 @@ ${oeil({ x: 17, y: 1, l: 14, h: 5, regard: [0, 0.3], paupiere: 0.3, id: oD })}
 <path d="M-30 -44C-26 -56 -18 -64 -8 -70M10 -48C16 -58 24 -62 32 -60" stroke="#6F685F" stroke-width="1.2"/>
 <path d="M-26 -70C-16 -78 -4 -80 8 -80C18 -79 27 -75 33 -69" stroke="#E9D3B4" stroke-width="1.2" opacity=".35"/>
 </g>
-</g>
+</g></g>
 <rect width="240" height="300" fill="url(#${ch})"/>
 </svg>`;
 }
@@ -229,7 +229,7 @@ export function odette() {
 <path d="M100 194C106 201 134 201 140 194L141 200C134 207 106 207 99 200Z" fill="#4A3F3B"/>
 ${perles}
 </g>
-<g data-part="tete" transform="translate(120 116)">
+<g data-part="tete"><g transform="translate(120 116)">
 <path d="M-15 44C-16 58 -18 76 -22 96L22 96C18 76 16 58 15 44Z" fill="${s0}"/>
 <path d="M-46 40C-54 0 -46 -60 0 -66C46 -60 54 0 46 40C44 46 38 48 32 44L-32 44C-38 48 -44 46 -46 40Z" fill="#5E5850"/>
 <path d="M0 -46C20 -46 33 -38 35 -22C37 -8 37 6 36 15C35 30 32 42 26 52C20 63 11 72 0 74C-11 72 -20 63 -26 52C-32 42 -35 30 -36 15C-37 6 -37 -8 -35 -22C-33 -38 -20 -46 0 -46Z" fill="url(#${pe})"/>
@@ -280,7 +280,7 @@ ${oeil({ x: 15, y: 0, l: 13, h: 5, regard: [0.3, -0.4], paupiere: 0.28, blanc: '
 <path d="M-12 -61C-14 -52 -14 -44 -12 -38" stroke="#6B655D" stroke-width="1.2" fill="none"/>
 <circle cx="-37" cy="47" r="3.4" fill="#E6DED0"/><circle cx="-38" cy="46" r="1" fill="#FFFFFF"/>
 <circle cx="37" cy="47" r="3.4" fill="#C9C1B3"/><circle cx="36" cy="46" r="1" fill="#FFFFFF"/>
-</g>
+</g></g>
 <rect width="240" height="300" fill="url(#${ch})"/>
 </svg>`;
 }
@@ -306,7 +306,7 @@ export function kiki() {
 <path d="M84 263H110" stroke="#CFE0FF" stroke-width="1.4" opacity=".6"/>
 <circle cx="88" cy="272" r="3.2" fill="#1E1E22"/><circle cx="88" cy="272" r="1.6" fill="#2E3440"/><circle cx="96" cy="272" r="2.4" fill="#1E1E22"/>
 </g>
-<g data-part="tete" transform="translate(120 112)">
+<g data-part="tete"><g transform="translate(120 112)">
 <path d="M-18 46C-19 60 -21 78 -25 98L25 98C21 78 19 60 18 46Z" fill="${s0}"/>
 <path d="M-38 -8C-46 -12 -50 -2 -48 10C-47 22 -43 30 -37 31Z" fill="${s1}"/>
 <path d="M38 -8C46 -12 50 -2 48 10C47 22 43 30 37 31Z" fill="#3A2214"/>
@@ -352,7 +352,7 @@ ${oeil({ x: 16, y: 1, l: 14, h: 5.2, regard: [-1.2, 1.8], paupiere: 0.5, id: oD 
 <path d="M-20 -46l2 -4M-12 -49l2 -4M-4 -50l2 -4M4 -50l2 -4M12 -49l2 -4M20 -46l2 -4" opacity=".7"/>
 </g>
 <circle cx="-41" cy="14" r="2.8" fill="#E9E9EA"/><circle cx="-41.8" cy="13.2" r=".9" fill="#FFFFFF"/>
-</g>
+</g></g>
 <rect width="240" height="300" fill="url(#${ch})"/>
 </svg>`;
 }
@@ -379,7 +379,7 @@ export function notaire() {
 <path d="M100 204C108 211 132 211 140 204L141 210C132 217 108 217 99 210Z" fill="#E2DDD4"/>
 <path d="M104 213L98 229L114 223Z" fill="#E8E3DA"/><path d="M136 213L142 229L126 223Z" fill="#C9C3B9"/>
 </g>
-<g data-part="tete" transform="translate(120 118)">
+<g data-part="tete"><g transform="translate(120 118)">
 <path d="M-19 48C-20 62 -22 78 -26 96L26 96C22 78 20 62 19 48Z" fill="${s0}"/>
 <path d="M-16 58C-10 62 -6 70 -8 80M16 58C10 62 6 70 8 80" stroke="#22140F" stroke-width="1.2" fill="none" opacity=".7"/>
 <path d="M-38 -10C-48 -14 -52 -2 -50 12C-49 26 -44 34 -37 34Z" fill="${s1}"/>
@@ -431,7 +431,7 @@ ${oeil({ x: 16, y: 1, l: 13, h: 4.6, regard: [0, 0.4], paupiere: 0.55, id: oD })
 <path d="M-41 -20C-44 -12 -44 -2 -42 6L-38 2C-39 -6 -39 -14 -38 -20Z" fill="#8E8880"/>
 <path d="M41 -20C44 -12 44 -2 42 6L38 2C39 -6 39 -14 38 -20Z" fill="#6E6860"/>
 <path d="M-28 -80C-18 -86 -6 -88 6 -88C18 -87 28 -82 34 -75" stroke="#F2D9BE" stroke-width="1.2" fill="none" opacity=".4"/>
-</g>
+</g></g>
 <rect width="240" height="300" fill="url(#${ch})"/>
 </svg>`;
 }
